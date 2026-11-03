@@ -9,7 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Compile
         run: python3 -m py_compile bot/*.py
       - name: Start with a fresh database
