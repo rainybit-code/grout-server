@@ -1,0 +1,814 @@
+{
+  "uid": "habits",
+  "title": "Habits",
+  "tags": [
+    "habits"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "15m",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-35d",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Current streak (days)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "WITH g AS (SELECT day, day - (row_number() OVER (ORDER BY day))::int AS grp FROM checkins WHERE goals),\n     runs AS (SELECT count(*) AS n, max(day) AS last FROM g GROUP BY grp)\nSELECT max(current_streak) FILTER (WHERE habit = 'move')  AS \"Move\",\n       max(current_streak) FILTER (WHERE habit = 'read')  AS \"Read\",\n       max(current_streak) FILTER (WHERE habit = 'phone') AS \"Phone out\",\n       (SELECT COALESCE((SELECT n FROM runs WHERE last >= current_date - 1 ORDER BY last DESC LIMIT 1), 0)) AS \"Goals\",\n       max(current_streak) FILTER (WHERE habit = 'all')   AS \"All three\"\nFROM v_streaks"
+        }
+      ],
+      "description": "Consecutive days at or above the daily floor. Today not logged yet does not break a streak.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 15,
+          "valueSize": 38
+        },
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Best streak (days)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "WITH g AS (SELECT day, day - (row_number() OVER (ORDER BY day))::int AS grp FROM checkins WHERE goals),\n     runs AS (SELECT count(*) AS n, max(day) AS last FROM g GROUP BY grp)\nSELECT max(best_streak) FILTER (WHERE habit = 'move')  AS \"Move\",\n       max(best_streak) FILTER (WHERE habit = 'read')  AS \"Read\",\n       max(best_streak) FILTER (WHERE habit = 'phone') AS \"Phone\",\n       (SELECT COALESCE(max(n), 0) FROM runs)          AS \"Goals\"\nFROM v_streaks"
+        }
+      ],
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 15,
+          "valueSize": 38
+        },
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Screen time, 7-day avg",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT round(avg(screen_net_min)) AS \"Net of driving\"\nFROM v_daily WHERE day > current_date - 7 AND screen_min IS NOT NULL"
+        }
+      ],
+      "description": "Phone screen time minus Google Maps while driving. Green at or under the target (180 min).",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 181
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 14,
+          "valueSize": 34
+        },
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "state-timeline",
+      "title": "Daily habits",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT v.day::timestamptz AS time,\n       CASE WHEN c.goals THEN 2 WHEN NOT c.goals THEN 0 END AS \"3 goals written\",\n       v.move_lvl AS \"Move\",\n       v.read_lvl AS \"Read\",\n       CASE WHEN v.phone_out THEN 2 WHEN NOT v.phone_out THEN 0 END AS \"Phone out of bedroom\"\nFROM v_daily v LEFT JOIN checkins c USING (day)\nWHERE v.tracking AND $__timeFilter(v.day::timestamptz)\nORDER BY 1"
+        }
+      ],
+      "description": "Floor = the minimum (2 min move, 10 pages). Full = a real session / 30 min reading. Phone: full = out of the bedroom. Blank = not logged.",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "missed",
+                  "color": "#c3c8cf",
+                  "index": 0
+                },
+                "1": {
+                  "text": "floor",
+                  "color": "#9ccfa5",
+                  "index": 1
+                },
+                "2": {
+                  "text": "full",
+                  "color": "#2e8b4e",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#c3c8cf"
+          },
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": false,
+        "rowHeight": 0.8,
+        "alignValue": "center",
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Screen time per day (net of driving)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT time, \"Net screen time\", \"7-day average\" FROM (\n  SELECT day::timestamptz AS time,\n         screen_net_min AS \"Net screen time\",\n         round(avg(screen_net_min) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)) AS \"7-day average\"\n  FROM v_daily WHERE screen_min IS NOT NULL\n) s\nWHERE $__timeFilter(time)\nORDER BY 1"
+        }
+      ],
+      "description": "Dashed line = target (180 min). Change it here and in the targets table when you lower it.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#8ab8e6"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "barAlignment": 0,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "spanNulls": true,
+            "showPoints": "never"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "#7a828c",
+                "value": 180
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "7-day average"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1f5fa8"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "Days at floor, per week",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT to_char(week, 'DD Mon') AS \"Week\", move_days AS \"Move\", read_days AS \"Read\", phone_days AS \"Phone\"\nFROM v_weekly WHERE days > 0 AND $__timeFilter(week::timestamptz) ORDER BY week"
+        }
+      ],
+      "description": "Out of 7. Weekly goal: 5+ on each.",
+      "timeFrom": "12w",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "gradientMode": "none"
+          },
+          "max": 7
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Move"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78c9"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Read"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#e08a2b"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Phone"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7b5bc4"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "Week",
+        "orientation": "vertical",
+        "groupWidth": 0.7,
+        "barWidth": 0.85,
+        "barRadius": 0.1,
+        "showValue": "never",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Training minutes per week",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT to_char(week, 'DD Mon') AS \"Week\", workout_min AS \"Training\" FROM v_weekly\nWHERE days > 0 AND $__timeFilter(week::timestamptz) ORDER BY week"
+        }
+      ],
+      "description": "",
+      "timeFrom": "12w",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Training"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78c9"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "Week",
+        "orientation": "vertical",
+        "groupWidth": 0.7,
+        "barWidth": 0.85,
+        "barRadius": 0.1,
+        "showValue": "never",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Pages per week",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT to_char(week, 'DD Mon') AS \"Week\", pages AS \"Pages\" FROM v_weekly\nWHERE days > 0 AND $__timeFilter(week::timestamptz) ORDER BY week"
+        }
+      ],
+      "description": "",
+      "timeFrom": "12w",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pages"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#e08a2b"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "Week",
+        "orientation": "vertical",
+        "groupWidth": 0.7,
+        "barWidth": 0.85,
+        "barRadius": 0.1,
+        "showValue": "never",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "Now reading",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 10,
+        "h": 7
+      },
+      "description": "Books in progress. Pages read before tracking started count toward progress.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT title || '   p. ' || pages_read || ' / ' || total_pages\n         || '   since ' || to_char(started, 'DD Mon') AS \"Book\",\n       pct AS \"Progress\"\nFROM v_books WHERE finished IS NULL ORDER BY started DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#e08a2b"
+          },
+          "displayName": "${__data.fields.Book}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": true,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "color",
+        "namePlacement": "top",
+        "showUnfilled": true,
+        "sizing": "manual",
+        "minVizHeight": 44,
+        "maxVizHeight": 56,
+        "text": {
+          "titleSize": 15,
+          "valueSize": 18
+        },
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Finished books",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "habits-pg"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 28,
+        "w": 14,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "habits-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT title AS \"Book\",\n       to_char(finished, 'DD Mon YYYY') AS \"Finished\",\n       to_char(started, 'DD Mon YYYY')  AS \"Started\",\n       finished - started + 1          AS \"Days\",\n       total_pages                      AS \"Pages\"\nFROM v_books WHERE finished IS NOT NULL\nORDER BY finished DESC, id DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Book"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

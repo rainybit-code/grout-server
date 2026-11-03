@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+*.sql.bak
+backups/
+docker-compose.override.yml

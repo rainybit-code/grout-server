@@ -1,0 +1,23 @@
+# Example: reverse proxy (nginx/Traefik) and Grafana running in Docker on the same machine.
+# Copy to docker-compose.override.yml, adjust the network names (`docker network ls`), then
+# `docker compose up -d`. The proxy reaches the API as http://grout-app:8080, Grafana reaches
+# Postgres as grout-db:5432.
+services:
+  app:
+    networks:
+      default:
+      proxy:
+        aliases: [grout-app]
+  db:
+    networks:
+      default:
+      grafana:
+        aliases: [grout-db]
+
+networks:
+  proxy:
+    external: true
+    name: nginx_default
+  grafana:
+    external: true
+    name: grafana_default

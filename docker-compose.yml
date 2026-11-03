@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    command: ["postgres", "-c", "timezone=${TZ:-UTC}"]
+    environment:
+      POSTGRES_DB: habits
+      POSTGRES_USER: habits
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:?set GRAFANA_DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      # Grafana connects here. Localhost only by default; set PG_BIND to a
+      # Tailscale/WireGuard IP if Grafana runs on another machine.
+      - "${PG_BIND:-127.0.0.1}:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U habits -d habits"]
+      interval: 10s
+      retries: 5
+
+  app:
+    build: ./bot
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://habits:${DB_PASSWORD}@db:5432/habits
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      API_TOKEN: ${API_TOKEN:-}
+      API_PORT: "8080"
+      DRIVE_DAYS: ${DRIVE_DAYS:-}
+      TZ_NAME: ${TZ:-UTC}
+      CHECKIN_TIME: ${CHECKIN_TIME:-21:30}
+      NUDGE_TIME: ${NUDGE_TIME:-22:30}
+      TRAINING_CHECK_TIME: ${TRAINING_CHECK_TIME:-10:00}
+      REVIEW_TIME: ${REVIEW_TIME:-19:00}
+      GOALS_TIME: ${GOALS_TIME:-07:00}
+      MOVE_REMINDER_TIME: ${MOVE_REMINDER_TIME:-11:00}
+      READ_REMINDER_TIME: ${READ_REMINDER_TIME:-19:20}
+      NOTIFY_TELEGRAM: ${NOTIFY_TELEGRAM:-true}
+    ports:
+      # Your reverse proxy (Caddy/nginx/Traefik) forwards your HTTPS domain here.
+      - "127.0.0.1:${API_HOST_PORT:-8087}:8080"
+
+volumes:
+  pgdata:

@@ -1,0 +1,8 @@
+# Optional: auto-load the dashboard. Point `path` at wherever you copy grafana/dashboards/.
+apiVersion: 1
+providers:
+  - name: habits
+    folder: Habits
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards/habits

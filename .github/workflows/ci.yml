@@ -1,0 +1,32 @@
+# Checks that the server compiles, builds, and comes up with a fresh database.
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Compile
+        run: python3 -m py_compile bot/*.py
+      - name: Start with a fresh database
+        run: |
+          printf 'DB_PASSWORD=ci\nGRAFANA_DB_PASSWORD=ci\nAPI_TOKEN=ci-token\nTZ=Europe/Copenhagen\n' > .env
+          docker compose up -d --build
+          for i in $(seq 30); do curl -sf http://127.0.0.1:8087/health && break; sleep 2; done
+      - name: API smoke test
+        run: |
+          H="Authorization: Bearer ci-token"; U=http://127.0.0.1:8087
+          curl -sf -H "$H" -X POST $U/checkin -d '{"goals":true,"move_lvl":1}'
+          curl -sf -H "$H" -X POST $U/book -d '{"title":"Test","total_pages":100,"current_page":10}'
+          curl -sf -H "$H" -X POST $U/book/page -d '{"page":30}'
+          curl -sf -H "$H" "$U/dashboard?days=7" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["book"]["pages_read"]==30 and d["checkin"]["today"]["goals"] is True, d'
+          curl -sf -H "$H" -X POST $U/sync -d '{"since":0}' | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["cursor"]>0 and len(d["changes"]["books"])==1, d'
+          test "$(curl -s -o /dev/null -w '%{http_code}' $U/stats)" = 401
+          ./scripts/migrate.sh
+      - name: Logs
+        if: always()
+        run: docker compose logs --no-color

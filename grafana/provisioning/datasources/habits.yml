@@ -1,0 +1,16 @@
+# Drop into Grafana's provisioning/datasources folder (or create the same
+# datasource by hand: PostgreSQL, uid "habits-pg"). The dashboard expects that uid.
+apiVersion: 1
+datasources:
+  - name: Habits
+    uid: habits-pg
+    type: grafana-postgresql-datasource
+    url: 127.0.0.1:5433          # host:port of the habits Postgres as Grafana sees it
+    user: grafana_ro
+    secureJsonData:
+      password: ${HABITS_GRAFANA_DB_PASSWORD}
+    jsonData:
+      database: habits
+      sslmode: disable           # fine on localhost / a private tunnel
+      postgresVersion: 1700
+      timeInterval: 1d
