@@ -26,7 +26,7 @@ You need a machine with Docker and Docker Compose, a domain name, and a reverse 
 ### 1. Get the code and configure
 
 ```sh
-git clone https://github.com/joak0068/grout-server.git
+git clone https://github.com/rainybit-code/grout-server.git
 cd grout-server
 cp .env.example .env
 ```
