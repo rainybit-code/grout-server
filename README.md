@@ -2,6 +2,8 @@
 
 The optional, self-hosted server for **[Grout](https://grout.rainybit.dk)**, the Android app for small daily habits and less screen time.
 
+**Get the app:** [Grout on Google Play](https://play.google.com/store/apps/details?id=com.rainybit.grout) · [grout.rainybit.dk](https://grout.rainybit.dk)
+
 The app works fine on its own. Run this server if you want:
 
 - **your data on a machine you control**, synced both ways with the app
@@ -100,7 +102,7 @@ curl -H "Authorization: Bearer $API_TOKEN" https://habits.example.com/stats
 
 ### 4. Connect the app
 
-In Grout: **Settings → Server sync (optional)**. Enter `https://habits.example.com` and the `API_TOKEN`, then tap **Connect and sync**. Step by step, with token handling and troubleshooting: **[docs/app.md](docs/app.md)**.
+Install [Grout from Google Play](https://play.google.com/store/apps/details?id=com.rainybit.grout), then open **Settings → Server sync (optional)**. Enter `https://habits.example.com` and the `API_TOKEN`, then tap **Connect and sync**. Step by step, with token handling and troubleshooting: **[docs/app.md](docs/app.md)**.
 
 - Everything already on the phone is uploaded, and everything on the server comes down.
 - After that the app syncs after every change, when it's opened, and every hour.

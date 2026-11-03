@@ -4,6 +4,7 @@ The app works without a server. Connecting one is optional, and you can disconne
 
 ## What you need
 
+- the app: [Grout on Google Play](https://play.google.com/store/apps/details?id=com.rainybit.grout)
 - the server running and reachable over **HTTPS**, e.g. `https://habits.example.com` (see the README)
 - the server's **API token**: the `API_TOKEN` value in `.env`
 
