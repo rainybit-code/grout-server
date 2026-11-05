@@ -25,6 +25,7 @@ jobs:
           curl -sf -H "$H" -X POST $U/book/page -d '{"page":30}'
           curl -sf -H "$H" "$U/dashboard?days=7" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["book"]["pages_read"]==30 and d["checkin"]["today"]["goals"] is True, d'
           curl -sf -H "$H" -X POST $U/sync -d '{"since":0}' | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["cursor"]>0 and len(d["changes"]["books"])==1, d'
+          curl -sf -H "$H" -X POST $U/sync -d '{"since":0,"changes":{"habits":[{"id":"h1","name":"Water","emoji":"💧","kind":"yes_no","position":4,"enabled":true,"created_at":1,"updated_at":1}],"habit_logs":[{"id":"h1|2026-01-01","habit_id":"h1","day":"2026-01-01","lvl":1,"updated_at":1}]}}' | python3 -c 'import sys,json; d=json.load(sys.stdin); assert len(d["changes"]["habits"])==1 and d["changes"]["habit_logs"][0]["lvl"]==1 and "habits" in d["tables"], d'
           test "$(curl -s -o /dev/null -w '%{http_code}' $U/stats)" = 401
           ./scripts/migrate.sh
       - name: Logs

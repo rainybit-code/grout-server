@@ -13,6 +13,10 @@ import decimal
 from core import Store
 
 CHECKIN_FIELDS = ("move_lvl", "read_lvl", "phone_out", "goals", "screen_min", "nav_min")
+HABIT_FIELDS = ("builtin", "name", "emoji", "hint", "kind", "floor_label", "full_label", "position", "enabled",
+                "remind", "remind_days", "deleted")
+# Tables this server syncs; the phone only marks rows as sent for tables listed here.
+TABLES = ["books", "workouts", "reading", "checkins", "targets", "habits", "habit_logs"]
 
 
 def _ts(ms) -> dt.datetime:
@@ -72,6 +76,23 @@ async def apply(store: Store, since: int, changes: dict) -> dict:
                     ON CONFLICT (day) DO UPDATE SET {', '.join(f'{f} = EXCLUDED.{f}' for f in fields)},
                         updated_at = GREATEST(checkins.updated_at, EXCLUDED.updated_at)""",
                     (_day(r["day"]), *[r[f] for f in fields], _ts(r["updated_at"])))
+            for r in changes.get("habits", []):
+                await conn.execute(f"""
+                    INSERT INTO habits (id, {', '.join(HABIT_FIELDS)}, created_at, updated_at)
+                    VALUES (%s, {', '.join(['%s'] * len(HABIT_FIELDS))}, %s, %s)
+                    ON CONFLICT (id) DO UPDATE SET {', '.join(f'{f} = EXCLUDED.{f}' for f in HABIT_FIELDS)},
+                        updated_at = EXCLUDED.updated_at
+                    WHERE habits.updated_at < EXCLUDED.updated_at""",
+                    (r["id"], r.get("builtin"), r["name"], r["emoji"], r.get("hint"), r.get("kind") or "yes_no",
+                     r.get("floor_label"), r.get("full_label"), r.get("position") or 0, r.get("enabled", True) is not False,
+                     r.get("remind"), r.get("remind_days", 127), bool(r.get("deleted")),
+                     _ts(r.get("created_at") or r["updated_at"]), _ts(r["updated_at"])))
+            for r in changes.get("habit_logs", []):
+                await conn.execute("""
+                    INSERT INTO habit_logs (id, habit_id, day, lvl, updated_at) VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO UPDATE SET lvl = EXCLUDED.lvl, updated_at = EXCLUDED.updated_at
+                    WHERE habit_logs.updated_at < EXCLUDED.updated_at""",
+                    (r["id"], r["habit_id"], _day(r["day"]), r.get("lvl"), _ts(r["updated_at"])))
             for r in changes.get("targets", []):
                 await conn.execute("""
                     INSERT INTO targets (key, value, updated_at) VALUES (%s, %s, %s)
@@ -110,4 +131,7 @@ async def apply(store: Store, since: int, changes: dict) -> dict:
         await rows("reading", """SELECT r.uuid, r.day, r.pages, r.minutes, b.uuid AS book_uuid, r.created_at,
                                         r.updated_at, r.deleted, r.rev
                                  FROM reading r LEFT JOIN books b ON b.id = r.book_id WHERE r.rev > %s""")
-    return {"cursor": cursor, "changes": out}
+        await rows("habits", f"""SELECT id, {', '.join(HABIT_FIELDS)}, created_at, updated_at, rev
+                                 FROM habits WHERE rev > %s""")
+        await rows("habit_logs", "SELECT id, habit_id, day, lvl, updated_at, rev FROM habit_logs WHERE rev > %s")
+    return {"cursor": cursor, "changes": out, "tables": TABLES}

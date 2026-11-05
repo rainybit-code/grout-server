@@ -55,7 +55,7 @@ You should see **"✓ Connected and synced"**, and under the button something li
 - Everything already on the phone is uploaded, and everything on the server comes down. Nothing is deleted.
 - If both sides have a check-in for the same day, they're merged field by field.
 - For books, workouts and reading, the newest edit wins.
-- From then on the app syncs after every change, every time you open it, and about once an hour in the background. The Today screen shows *"Synced 14:35"* under the date, and a ↻ button appears for syncing by hand.
+- From then on the app syncs after every change, every time you open it, and about once an hour in the background. The Today screen shows *"Synced 14:35"* under the date; tap it to sync by hand.
 
 ## What syncs, and what doesn't
 
@@ -65,6 +65,8 @@ You should see **"✓ Connected and synced"**, and under the button something li
 | screen time per day (total + driving) | per-app screen time |
 | workouts, reading, books | widget and app settings |
 | targets (screen time, weekly goals) | the token itself (also excluded from Google backup) |
+| your habit list: which are on, their order, names, tiny versions, your own habits and their reminder times (app 1.1+) | |
+| check-ins for your own habits (app 1.1+, server needs `db/init/08_habits.sql`: run `./scripts/migrate.sh`) | |
 
 Reminders always come from the phone, so they work offline. If you also use the Telegram bot, set `NOTIFY_TELEGRAM=false` on the server so the bot doesn't send them too.
 
